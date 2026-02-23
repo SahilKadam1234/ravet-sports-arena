@@ -10,6 +10,8 @@ const PRICING = {
   full: 2000,
   half: 1000
 };
+const MAX_ADVANCE_DAYS = 90;
+const MAX_SLOTS_PER_BOOKING = 6;
 
 const parseDateInput = (dateInput) => {
   if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
@@ -29,15 +31,15 @@ const getDayRange = (dateInput) => {
 
 const formatHourSlot = (hour) => `${hour.toString().padStart(2, '0')}:00`;
 const isDbConnected = () => mongoose.connection.readyState === 1;
+const isValidSlotFormat = (slot) => /^\d{2}:00$/.test(slot);
+const toHour = (slot) => Number.parseInt(String(slot).split(':')[0], 10);
 
 // Create a new booking
 router.post('/', async (req, res) => {
   try {
-    const { fullName, phoneNumber, email, groundType, date, timeSlot, hours, photoUrl, paymentMethod } = req.body;
-    const bookingHours = Number.parseInt(hours, 10);
-    const startHour = Number.parseInt(String(timeSlot || '').split(':')[0], 10);
+    const { fullName, phoneNumber, email, groundType, date, timeSlot, hours, selectedSlots, photoUrl, paymentMethod } = req.body;
 
-    if (!fullName || !phoneNumber || !email || !groundType || !date || !timeSlot || !bookingHours || !paymentMethod) {
+    if (!fullName || !phoneNumber || !email || !groundType || !date || !paymentMethod) {
       return res.status(400).json({
         success: false,
         message: 'Missing required booking fields'
@@ -51,24 +53,86 @@ router.post('/', async (req, res) => {
       });
     }
 
-    if (Number.isNaN(startHour) || startHour < 6 || startHour > 23) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid start time slot'
-      });
-    }
-
-    if (bookingHours < 1 || startHour + bookingHours - 1 > 23) {
-      return res.status(400).json({
-        success: false,
-        message: 'Selected hours overflow available slot timing (06:00-23:00)'
-      });
-    }
-
     const { dayStart, dayEnd } = getDayRange(date);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const maxDate = new Date(today);
+    maxDate.setDate(maxDate.getDate() + MAX_ADVANCE_DAYS);
+
+    if (dayStart < today || dayStart > maxDate) {
+      return res.status(400).json({
+        success: false,
+        message: `Booking date must be within ${MAX_ADVANCE_DAYS} days from today`
+      });
+    }
+
     const requestedSlots = [];
-    for (let i = 0; i < bookingHours; i++) {
-      requestedSlots.push(formatHourSlot(startHour + i));
+    let bookingHours = 0;
+
+    if (Array.isArray(selectedSlots) && selectedSlots.length > 0) {
+      const normalizedSlots = [...new Set(selectedSlots.map((slot) => String(slot).trim()))]
+        .map((slot) => formatHourSlot(toHour(slot)))
+        .sort((a, b) => toHour(a) - toHour(b));
+
+      if (normalizedSlots.length !== selectedSlots.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Duplicate slots are not allowed in a single booking'
+        });
+      }
+
+      if (normalizedSlots.length > MAX_SLOTS_PER_BOOKING) {
+        return res.status(400).json({
+          success: false,
+          message: `You can book up to ${MAX_SLOTS_PER_BOOKING} slots in one request`
+        });
+      }
+
+      const invalidSlot = normalizedSlots.find((slot) => {
+        const hour = toHour(slot);
+        return !isValidSlotFormat(slot) || Number.isNaN(hour) || hour < 6 || hour > 23;
+      });
+
+      if (invalidSlot) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid time slot: ${invalidSlot}`
+        });
+      }
+
+      for (let i = 1; i < normalizedSlots.length; i++) {
+        if (toHour(normalizedSlots[i]) - toHour(normalizedSlots[i - 1]) !== 1) {
+          return res.status(400).json({
+            success: false,
+            message: 'Selected slots must be continuous'
+          });
+        }
+      }
+
+      bookingHours = normalizedSlots.length;
+      requestedSlots.push(...normalizedSlots);
+    } else {
+      const startHour = Number.parseInt(String(timeSlot || '').split(':')[0], 10);
+      bookingHours = Number.parseInt(hours, 10);
+
+      if (Number.isNaN(startHour) || startHour < 6 || startHour > 23) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid start time slot'
+        });
+      }
+
+      if (bookingHours < 1 || bookingHours > MAX_SLOTS_PER_BOOKING || startHour + bookingHours - 1 > 23) {
+        return res.status(400).json({
+          success: false,
+          message: `Selected hours must be between 1 and ${MAX_SLOTS_PER_BOOKING} within 06:00-23:00`
+        });
+      }
+
+      for (let i = 0; i < bookingHours; i++) {
+        requestedSlots.push(formatHourSlot(startHour + i));
+      }
     }
 
     const existingSlots = isDbConnected()
@@ -130,7 +194,7 @@ router.post('/', async (req, res) => {
       email,
       groundType,
       date: dayStart,
-      timeSlot,
+      timeSlot: requestedSlots[0],
       hours: bookingHours,
       photoUrl,
       paymentMethod,
