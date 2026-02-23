@@ -1,0 +1,110 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book Slot | RAVET sports arena</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">RAVET <span>sports</span> arena</div>
+    <ul class="nav-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="/booking">Booking</a></li>
+      <li><a href="/contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <header class="page-header">
+    <h1>Book Your Slot</h1>
+    <p>Select a time slot and confirm your booking.</p>
+  </header>
+
+  <main class="container">
+    <div class="form-container">
+      <form id="booking-form">
+        <div class="form-group">
+          <label for="fullName">Full Name</label>
+          <input id="fullName" class="form-control" type="text" placeholder="Your full name" required />
+        </div>
+
+        <div class="form-group">
+          <label for="phoneNumber">Phone Number</label>
+          <input id="phoneNumber" class="form-control" type="tel" placeholder="Your phone number" required />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input id="email" class="form-control" type="email" placeholder="Your email" required />
+        </div>
+
+        <div class="form-group">
+          <label for="bookingDate">Booking Date</label>
+          <input id="bookingDate" class="form-control" type="date" required />
+        </div>
+
+        <div class="form-group">
+          <label for="hours">Hours</label>
+          <select id="hours" class="form-control" required>
+            <option value="1">1 hour</option>
+            <option value="2">2 hours</option>
+            <option value="3">3 hours</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="paymentMethod">Payment Method</label>
+          <select id="paymentMethod" class="form-control" required>
+            <option value="cash">Cash</option>
+            <option value="upi">UPI</option>
+            <option value="online">Online</option>
+          </select>
+        </div>
+
+        <div class="ground-options">
+          <label class="ground-option">
+            <input type="radio" name="groundType" value="full" checked />
+            <div class="ground-card">
+              <h3>Full Ground</h3>
+              <div class="price">Rs. 2000/hr</div>
+            </div>
+          </label>
+          <label class="ground-option">
+            <input type="radio" name="groundType" value="half" />
+            <div class="ground-card">
+              <h3>Half Ground</h3>
+              <div class="price">Rs. 1000/hr</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>Choose Start Time Slot</label>
+          <div id="time-slots" class="time-slots"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Slot Availability (Booked / Unbooked)</label>
+          <div id="slot-status-grid" class="slots-grid"></div>
+        </div>
+
+        <div class="price-display">
+          <div class="label">Estimated Price</div>
+          <div id="total-price" class="amount">Rs. 2000</div>
+          <div id="selected-slot-text" class="label">No slot selected</div>
+        </div>
+
+        <div id="booking-message"></div>
+
+        <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+          <button id="submit-booking" class="btn btn-primary" type="submit">Confirm Booking</button>
+          <a class="btn btn-secondary" href="/">Back Home</a>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script src="/js/booking.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.local
+
+# Runtime logs
+*.log
+server-out.log
+server-err.log
+
+# Runtime fallback data
+server/data/inMemoryStore.json
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
